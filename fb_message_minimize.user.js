@@ -1,19 +1,11 @@
 // ==UserScript==
-// @name           FB_edit_style
-// @namespace      127.0.0.1
+// @name           fb_message_minimize
+// @namespace      userscripts.ovrhere.com
 // @author         Jason
-// @description    Edits the style to how I want it because, by damn...
-// @include        http://www.facebook.com/home.php?sk=fl_87635016882
-// @include        http://www.facebook.com/*
+// @description    Adds a minimize button to the message page to toggle the "contact" list.
 // @include        http://www.facebook.com/messages/*
-// @include        https://www.facebook.com/home.php?sk=fl_87635016882
-// @include        https://www.facebook.com/*
 // @include        https://www.facebook.com/messages/*
 // ==/UserScript==
-
-/**
- * NOTE: @see codeInjection.js
- */
 
 /**
  * NOTE changes :
@@ -26,14 +18,9 @@
  * 		- Patched - Message body broke. Moved the margin back of <div class="_2nb">
  * 2013-04-01	- Patched - Message body broke. The page was restyling causing the ad-bar to creep in from the right.
  * 			set width as !important.
+ * 2013-09-07	-Branched to its own file. Added git.
  *  
  * 
- * @todo Add script to detect fb messages  - done
- * @todo find minimize panel button - done
- * @todo Add the custom message layout (with the minimize panel button   
- * 	+ resize message) -done
- *
- *
  * TODO Add cookie to pre-do tasks.
  * 
  * NOTE: class for messagebody used to be '.-cx-PRIVATE-webMessengerReadView__messagingScroller .uiScrollableAreaBody', or
@@ -47,38 +34,60 @@
  * 
  * 	class 'wmMasterView' for left side panel
  * 
- *	
- * Branching to its own script.
  */
 
-
- /**
- * Uses string manipulation on the code for injection into the page. 
- * NOTE: Must use the format 'var [start];' and 'var [end];' 
- *   encapsulating the code to be injected.
- * @param {String} inputScript to inject into page code	
- * @return {String} The code to be injected.
+/**
+ * Used to inject userscripts into the page 
+ * (to circumvent to greasemonkey's sandbox isolating userscripts from page scripts)
+ * and allowing the page to excute the scripts.
+ * 
+ * @this {CodeInjector}
+ * 
  */
- function codeTrimmer(fullScript, start, end)
- {	start 	= 'var '+start+';';
-	end	= 'var '+end+';';
-	var index1 = fullScript.indexOf(start) + start.length;
-	var index2 = fullScript.indexOf(end);
-	return fullScript.substring(index1,index2);
-}
+ function CodeInjector(){
+ 
+   return {
+     
+     /**
+      * Returns the passed script as a string.
+      * @param {function} scriptContainer The script container to turn to a string.
+      * @return {String} The function code as a string.
+      */
+     functionToString:function(scriptContainer){
+	return (new Function(scriptContainer)).toString()
+     },
+     
+      /**
+      * Uses string manipulation on the code for injection into the page. 
+      * NOTE: Must use the format 'var [start];' and 'var [end];' 
+      *   encapsulating the code to be injected.
+      * @param {String} fullScript The fullscript to trime.
+      * @return {String} The code to be injected.
+      */
+      trimmer:function(fullScript, start, end)
+      {	start 	= 'var '+start+';';
+	    end	= 'var '+end+';';
+	    var index1 = fullScript.indexOf(start) + start.length;
+	    var index2 = fullScript.indexOf(end);
+	    return fullScript.substring(index1,index2);
+      },
 
+      /**
+      * Injects code into the page giving it the id: "jason-script".
+      * @param {String} inputScript to inject into page code.
+      */
+      syringe:function(inputScript)
+      {   var script = document.createElement('script');
+	  script.setAttribute("type", "application/javascript"); script.setAttribute("id", "jason-script");
+	  var scriptText = document.createTextNode(inputScript);
+	  script.appendChild(scriptText);
+	  document.getElementsByTagName('head')[0].appendChild(script);
+      }
+   };
 
- /**
- * Injects code into the page giving it the id: "jason-script".
- * @param {String} inputScript to inject into page code.
- */
-function codeSyringe(inputScript)
-{   var script = document.createElement('script');
-    script.setAttribute("type", "application/javascript"); script.setAttribute("id", "jason-script");
-    var scriptText = document.createTextNode(inputScript);
-    script.appendChild(scriptText);
-    document.getElementsByTagName('head')[0].appendChild(script);
-} 
+ }
+
+  
 
 ////////////////////////////////////////////////////////////////////////// 
 ///// End of code injector block
@@ -89,14 +98,12 @@ function codeSyringe(inputScript)
 ///// Fb messaging block start
 //////////////////////////////////////////////////////////////////////////
 {
-var address =  '' + window.location;
- var http = /^http(s)?\:\/\/www\.facebook\.com\/messages(.*)/
- 
- 
- var webMessenger = document.getElementById('pagelet_web_messenger');
-  
- var minButtonInner = '[&#x25C0; ]'; //&#x25B6; > and &#x25C0; < //&#x25B2; /\ and &#x25BC; \/
- var minButtonId = "jason-min-button"
+  /** The main messaging container. */
+  var webMessenger = document.getElementById('pagelet_web_messenger');
+  /** The inner text for the minimize button. Currently >. */
+  var minButtonInner = '[&#x25C0; ]'; //&#x25B6; > and &#x25C0; < //&#x25B2; /\ and &#x25BC; \/
+  /** The id for the minimized button. */
+  var minButtonId = "jason-min-button"
   var buttonStyle = "\n\n/*Added for the sake of message minimize button*/\n"  +
 		    "#"+minButtonId+" {color: #01359E; /*blue*/ font-weight: bold; cursor:pointer; "+
 		    "padding: 8px 3px 8px 3px; float: left; margin-left: -30px;} \n" +
@@ -246,44 +253,26 @@ var BEGIN_CODE_INJECTION;
 ///// Fb messaging block end
 //////////////////////////////////////////////////////////////////////////
 
-//var centeringStyle = "margin: 0 auto 0 auto !important; width: 80% !important; min-width: 1000px;"
-var centeringStyle = "margin: 0 10% !important; padding-right: 0px;"
-
-//pagelet_bluebar pageHead
-var headerBar =	document.getElementById("pageHead");
-	//if (headerBar) headerBar.setAttribute("style", centeringStyle);
-var mainBody = 	document.getElementById("globalContainer");
-	//if (mainBody) mainBody.setAttribute("style", centeringStyle);
 	
 var head	= document.getElementsByTagName('head')[0];
-var styleSheet = "/*Jason\'s edit*/ \n" +
-				".uiStreamMessage .messageBody {font-size: 11px !important;} "
-				
+var stylesheetId = 'jason-stylesheet';
 
 if ( head)
 {
-	var css	= 	document.createElement('style');
+  	var css	= document.createElement('style');
 		css.setAttribute ('type', 'text/css');
-		css.setAttribute ('id', 'jason-stylesheet');
-		css.innerHTML = styleSheet;
+		css.setAttribute ('id', stylesheetId);
+		css.innerHTML = buttonStyle;
 		head.appendChild(css);	
-
 		
-	codeSyringe(codeTrimmer( new Function(scriptContainer).toString(), 'BEGIN_CODE_INJECTION', 'END_CODE_INJECTION') );
-	
-	if ( http.test(address) )
-	{
-	
-	    css.innerHTML = css.innerHTML + buttonStyle;
-	    waitUntilLoad(insertMinimizeButton, 0);// window.location = address.replace(/http/ , "https")
-	       //var my_src = "(" + page_scope_runner.caller.toString() + ")();";
-	    //unsafeWindow.console.debug("x %s %s", page_scope_runner.caller );
-	}   
-}
-	  
+  
+  
+	var codeInjector = CodeInjector();
+	codeInjector.syringe(
+		codeInjector.trimmer( 
+		      codeInjector.functionToString(scriptContainer), 
+		      'BEGIN_CODE_INJECTION', 'END_CODE_INJECTION') 
+		);
 
-	
-	
-	
-	
-	
+	waitUntilLoad(insertMinimizeButton, 0);// window.location = address.replace(/http/ , "https")
+}
