@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name           fb_message_minimize
-// @namespace      userscripts.ovrhere.com
-// @author         Jason
+// @namespace      ovrhere.com
+// @author         Jason J
 // @description    Adds a minimize button to the message page to toggle the "contact" list.
 // @include        http://www.facebook.com/messages/*
 // @include        https://www.facebook.com/messages/*
+// @version        0.1.1
 // ==/UserScript==
 
 /**
@@ -37,15 +38,16 @@
  */
 
 /**
- * Used to inject userscripts into the page 
+ * Used to inject pieces of userscripts into the page 
  * (to circumvent to greasemonkey's sandbox isolating userscripts from page scripts)
  * and allowing the page to excute the scripts.
  * 
  * @this {CodeInjector}
- * 
+ * @version 0.3.0
  */
- function CodeInjector(){
- 
+ function CodeInjector()
+ {
+   var codeInjectorId = "my-injected-script";
    return {
      
      /**
@@ -53,7 +55,8 @@
       * @param {function} scriptContainer The script container to turn to a string.
       * @return {String} The function code as a string.
       */
-     functionToString:function(scriptContainer){
+     functionToString:function(scriptContainer)
+     {
 	return (new Function(scriptContainer)).toString()
      },
      
@@ -62,6 +65,8 @@
       * NOTE: Must use the format 'var [start];' and 'var [end];' 
       *   encapsulating the code to be injected.
       * @param {String} fullScript The fullscript to trime.
+      * @param {String} start The starting tag of injected code.
+      * @param {String} end The end tag of injected code.
       * @return {String} The code to be injected.
       */
       trimmer:function(fullScript, start, end)
@@ -73,21 +78,33 @@
       },
 
       /**
-      * Injects code into the page giving it the id: "jason-script".
+      * Injects code into the page giving it the id: "my-injected-script".
       * @param {String} inputScript to inject into page code.
       */
       syringe:function(inputScript)
       {   var script = document.createElement('script');
-	  script.setAttribute("type", "application/javascript"); script.setAttribute("id", "jason-script");
+	  script.setAttribute("type", "application/javascript"); script.setAttribute("id", codeInjectorId);
 	  var scriptText = document.createTextNode(inputScript);
 	  script.appendChild(scriptText);
 	  document.getElementsByTagName('head')[0].appendChild(script);
+      },
+      
+      /**
+      * Parses the scriptContainer, trims it, and injects it into the page.
+      * @param {function} scriptContainer The script container to turn to a string.
+      * @param {String} start The starting tag of injected code.
+      * @param {String} end The end tag of injected code.
+      * @see CodeInjector.functionToString
+      * @see CodeInjector.trimmer
+      * @see CodeInjector.syringe
+      */
+      fullInjection:function(scriptContainer, start, end)
+      {  
+	this.syringe(  this.trimmer( this.functionToString(scriptContainer), start, end ) );
       }
    };
 
  }
-
-  
 
 ////////////////////////////////////////////////////////////////////////// 
 ///// End of code injector block
@@ -102,15 +119,32 @@
   var webMessenger = document.getElementById('pagelet_web_messenger');
   /** The inner text for the minimize button. Currently >. */
   var minButtonInner = '[&#x25C0; ]'; //&#x25B6; > and &#x25C0; < //&#x25B2; /\ and &#x25BC; \/
+  
+  //NOTE: These 3 will need to be manually redefined in injected script
   /** The id for the minimized button. */
-  var minButtonId = "jason-min-button"
+  var minButtonId = "my-message-min-button"  
+  /** The minimized class name. */
+  var minClass = 'my-minbutton-min';
+  /** The minimized class name. */
+  var defClass = 'my-minbutton-def';
+  //= ["my-minbutton-min", "my-minbutton-def"];
+  
+  /** This is the text to define the style: 
+   * default: light-blue bg, dark blue text. 
+   * mouse hover: colour change, mouse change.
+   * minimized: dark-blue bg, white text.
+   */
   var buttonStyle = "\n\n/*Added for the sake of message minimize button*/\n"  +
 		    "#"+minButtonId+" {color: #01359E; /*blue*/ font-weight: bold; cursor:pointer; "+
 		    "padding: 8px 3px 8px 3px; float: left; margin-left: -30px;} \n" +
-		    ".j-min-def  {background-color: #E8EFFC; /*lighter blue*/} \n" +
-		    ".j-min-def:hover  {background-color: #DDE8FF; /*light blue*/} \n" +
-		    ".j-min-min  {background-color: #3B5998; /*darker blue*/ color: white !important;} \n";
+		    "."+defClass +" {background-color: #E8EFFC; /*lighter blue*/} \n" +
+		    "."+defClass +":hover  {background-color: #DDE8FF; /*light blue*/} \n" +
+		    "."+minClass +"  {background-color: #3B5998; /*darker blue*/ color: white !important;} \n";
+    
+  /** The number of times before we give up on trying. */
+  var retryLimit = 120;  //assuming we try once a second, give up in 2 mins
   
+  /** Inserts the minimize button and its action. */
   function insertMinimizeButton()
   {
      var leftPanel = webMessenger.getElementsByTagName('div')[0] //div with random id
@@ -119,14 +153,20 @@
    
     var minButton = document.createElement('div');
 	minButton.setAttribute('id', minButtonId);
-	minButton.setAttribute('class', 'j-min-def');
-	minButton.setAttribute('onclick', 'jToggleMessageSide()');
+	minButton.setAttribute('class', defClass);
+	minButton.setAttribute('onclick', 'MyMessageMin().jToggleMessageSide()');
 	minButton.innerHTML = minButtonInner;
 	
        leftPanel.insertBefore( minButton, leftPanel.firstChild);
     
   }
   
+  /**
+   * Waits until the button's parent-to-be loads before executing the function.
+   * We will try for 2 minutes before we decide to give up.
+   * @param {function} func The function execute once the DOM has loaded.
+   * @param {number} count The number of times we've retried.
+   */
   function waitUntilLoad(func, count)
   {
     	      
@@ -136,12 +176,12 @@
    if (leftPanel)
    {	if (leftPanel = leftPanel.getElementsByTagName('div')[0])
 	{  if (leftPanel.getElementsByTagName('div')[0]) 
-	  {  func(); 
+	  {  func(); //divs all found at the end of the tunnel
 	    return;
 	  }  
 	}
    }
-    else if(count > 120) //give up in 2 mins
+    else if(count > retryLimit) 
       return;
     count +=1;
     setTimeout(function(){waitUntilLoad(func, count)},1000);	//retry
@@ -149,106 +189,126 @@
   }
  
 /** 
- * Used as a wrapper to contain the script 
+ * Used as a wrapper to contain the script for injection.
  */  
 function scriptContainer()
 {//Beginning of injection
 var BEGIN_CODE_INJECTION;
 
-  var jMinimized = 0;
-  var sidePanelSuper ='';
-  //var msgPanelSuper = ''
-	      
-  var sidePanelStyle = '';  //likely remains null, but just in case
-  //var msgPanelStyle = '';
-  
-  var jWideCss = ''
- 
-  
- /**
- * Inserts or removes css to widen msgBlock. 
- * @param {boolean} insert Where to insert css or not
- */
-  function insertWideStyle(insert)
-  {
-      var styleSheet = 'div ._2nb {margin-left:-309px; width:100% !important;} \n' + //added 2013-01-11, edited 2013-04-01
-      
-			'div .-cx-PRIVATE-webMessengerReadView__messagingScroller .uiScrollableAreaBody, \n' + //backwards compatible
-			'div ._2nc .uiScrollableAreaBody, \n div ._2nc, \n div .uiScrollableAreaBody\n ' + //used
-  			  'div .-cx-PRIVATE-webMessengerReadView__messagingScroller \n' +  //backwards compatible
-			  ' {width: 847px !important;}'
-      var wideCssId = 'jason-widen-css';
-      
-      if (insert)
-      {
-	if (!jWideCss)
-	{
-	    jWideCss = document.createElement('style');
-	    jWideCss.setAttribute('type', 'text/css');
-	    jWideCss.setAttribute('id', wideCssId);
-	    jWideCss.innerHTML = styleSheet;
-	}   
-	document.getElementsByTagName('head')[0].appendChild(jWideCss);    
-      }
-      else
-      {
-	if (jWideCss)
-	   jWideCss.parentNode.removeChild(jWideCss);
-      }
-  }
-  
-  
- /**
- * Minimizes the side bar, widens the message and other tidbits
- * Function meant to be injected into page
- */
- function jToggleMessageSide()
- {
-   if (!sidePanelSuper)
-   { 
-      sidePanelSuper = document.getElementById('pagelet_web_messenger')
-	      .getElementsByTagName('div')[0] //div with random id
-	      .getElementsByTagName('div')[0] //div with class -cx-PRIVATE-webMessengerBase__contentGrid clearfix
-	      .getElementsByTagName('div')[0] //div with class wmMasterView
-	      .getElementsByTagName('div')[1]; //our div to minimze
-/*      msgPanelSuper = document.getElementById('pagelet_web_messenger')
-	      .getElementsByTagName('div')[0] //div with random id
-	      .getElementsByTagName('div')[0] //div with class -cx-PRIVATE-webMessengerBase__contentGrid clearfix
-	      .childNodes[1] //div with class -cx-PRIVATE-webMessengerReadView__root
-	      .getElementsByTagName('div')[0] //div with class clearfix 
-	      .childNodes[2] //-cx-PRIVATE-webMessengerReadView__readContainer
-	      .getElementsByTagName('div')[1]; //our div to widen; 
-*/      sidePanelStyle=sidePanelSuper.getAttribute("style"); 
- //     msgPanelStyle=msgPanelSuper.getAttribute("style"); 
-    }
-    	      
    
-   //two tier is ok, but static variables are unfortunate.
-   var button = document.getElementById('jason-min-button');
-   var bClass = ["j-min-min", "j-min-def"];
-   var buttonVal = ['[ &#x25B6;]', '[&#x25C0; ]' ] //&#x25B6; > and &#x25C0; < //&#x25B2; /\ and &#x25BC; \/
-   button.setAttribute('class', bClass[jMinimized]);
-   button.innerHTML= buttonVal[jMinimized]; 
-   if (jMinimized)	//minimized?
-   {
-     jMinimized = 0;	//then unminimize
-     sidePanelSuper.setAttribute("style", sidePanelStyle)
-     //msgPanelSuper.setAttribute("style", msgPanelStyle)
-     insertWideStyle(0)
-   }
-   else 
-   {
-     jMinimized = 1;
-     sidePanelSuper.setAttribute("style", sidePanelStyle+ "; display:none;")
-   //  msgPanelSuper.setAttribute("style", msgPanelStyle+ "; width:840px !important;")
-     insertWideStyle(1)
-   }
- }
- 
+ /** Singleton module that holds function for the message minimize button. 
+  * @this MyMessageMin
+  */
+  function MyMessageMin(){
+    /** Keeps it a singleton. */  
+    MyMessageMin.instance;
+       
+      if ( typeof MyMessageMin.instance === 'undefined' ){
+	 MyMessageMin.instance = null;
+      }
+      
+      //private members
+      
+      /** The minimize button id. */
+      var myButtonId = 'my-message-min-button'
+      /** The available button classes for each state. 1 for minimized 0 for default. */
+      var myButtonClass = ["my-minbutton-def", "my-minbutton-min"]; 
+      /** The possible button values. 1 for minimized, 0 for default. */
+      var buttonVal = ['[&#x25C0; ]' , '[ &#x25B6;]'] //&#x25B6; > and &#x25C0; < //&#x25B2; /\ and &#x25BC; \/
+      
+
+       /** The wide css element. */
+       var jWideCss = document.createElement('style');
+		  jWideCss.setAttribute('type', 'text/css');
+		  jWideCss.setAttribute('id', 'message-widen-css');
+		  jWideCss.innerHTML = ''+
+		  'div ._2nb {margin-left:-309px; width:100% !important;} \n' + //added 2013-01-11, edited 2013-04-01
+		  'div .-cx-PRIVATE-webMessengerReadView__messagingScroller .uiScrollableAreaBody, \n' + //backwards compatible
+		  'div ._2nc .uiScrollableAreaBody, \n div ._2nc, \n div .uiScrollableAreaBody\n ' + //used
+		  'div .-cx-PRIVATE-webMessengerReadView__messagingScroller \n' +  //backwards compatible
+		  ' {width: 847px !important;}';
+       
+	/** The messenger body element. */
+        var sidePanelSuper = document.getElementById('pagelet_web_messenger')
+		    .getElementsByTagName('div')[0] //div with random id
+		    .getElementsByTagName('div')[0] //div with class -cx-PRIVATE-webMessengerBase__contentGrid clearfix
+		    .getElementsByTagName('div')[0] //div with class wmMasterView
+		    .getElementsByTagName('div')[1]; //our div to minimze
+		    
+       /** The messenger previous style. */
+       var sidePanelStyle =sidePanelSuper.getAttribute("style");   //likely remains empty, but just in case
+	    
+      /** The emotion icon element. */
+      var emotPanelIcon =  document.getElementById('pagelet_web_messenger')
+				     .getElementsByClassName('emoticonsPanel')[0].parentNode;
+      /** The emotion icon previous style.  */
+      var emotPanelStyle = emotPanelIcon.getAttribute('style');      
+
+      /** The wide style for the emotions. */
+      var emotWideStyle = 'left: 802px;';
+        
+      
+      
+      /** Whether or not the side-bar is currently minimized AND the current myButtonClass of class to use. */
+      var jMinimized = 0;
+      
+      if (MyMessageMin.instance == null){
+       MyMessageMin.instance = {
+	  
+      
+      /**
+      * Inserts or removes css to widen msgBlock. 
+      * @param {boolean} insert <code>true</code> to insert css, 
+      * <code>false</code> to remove.
+      */
+	insertWideStyle:function(insert)
+	{
+	   if (insert)
+	    {  
+	      document.getElementsByTagName('head')[0].appendChild(jWideCss);    
+	    }
+	    else
+	    {
+		jWideCss.parentNode.removeChild(jWideCss);
+	    }
+	    
+	},	
+	
+      /**
+      * Minimizes the side bar, widens the message and other tidbits
+      * Function meant to be injected into page
+      */
+      jToggleMessageSide:function()
+      {
+	console.log("jToggleMessageSide: " + jMinimized);
+	if (jMinimized)	//minimized?
+	{
+	  jMinimized = 0;	//then unminimize
+	  sidePanelSuper.setAttribute("style", sidePanelStyle)
+	  emotPanelIcon.setAttribute("style", emotPanelStyle);
+	}
+	else 
+	{
+	  jMinimized = 1;
+	  sidePanelSuper.setAttribute("style", sidePanelStyle+ "; display:none;");
+	  emotPanelIcon.setAttribute("style", emotWideStyle);
+	}
+	//two tier is ok, but static variables are unfortunate.
+	var button = document.getElementById(myButtonId);
+	    button.setAttribute('class', myButtonClass[jMinimized]);
+	    button.innerHTML= buttonVal[jMinimized]; 
+	    
+	this.insertWideStyle(jMinimized); 
+      }
+    };
+  }
+    return MyMessageMin.instance;
+  }  
+  
  var END_CODE_INJECTION;
 }//end of injection 
 
-}
+} 
 ////////////////////////////////////////////////////////////////////////// 
 ///// Fb messaging block end
 //////////////////////////////////////////////////////////////////////////
@@ -268,11 +328,7 @@ if ( head)
   
   
 	var codeInjector = CodeInjector();
-	codeInjector.syringe(
-		codeInjector.trimmer( 
-		      codeInjector.functionToString(scriptContainer), 
-		      'BEGIN_CODE_INJECTION', 'END_CODE_INJECTION') 
-		);
+	codeInjector.fullInjection(scriptContainer, 'BEGIN_CODE_INJECTION', 'END_CODE_INJECTION');
 
-	waitUntilLoad(insertMinimizeButton, 0);// window.location = address.replace(/http/ , "https")
+	waitUntilLoad(insertMinimizeButton, 0);
 }
