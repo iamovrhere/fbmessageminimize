@@ -5,7 +5,7 @@
 // @description    Adds a minimize button to the message page to toggle the "contact" list.
 // @include        http://www.facebook.com/messages/*
 // @include        https://www.facebook.com/messages/*
-// @version        0.1.1
+// @version        0.1.3
 // ==/UserScript==
 
 /**
@@ -154,7 +154,7 @@
     var minButton = document.createElement('div');
 	minButton.setAttribute('id', minButtonId);
 	minButton.setAttribute('class', defClass);
-	minButton.setAttribute('onclick', 'MyMessageMin().jToggleMessageSide()');
+	minButton.setAttribute('onclick', 'MyMessageMin().toggleMessageSide()');
 	minButton.innerHTML = minButtonInner;
 	
        leftPanel.insertBefore( minButton, leftPanel.firstChild);
@@ -204,7 +204,7 @@ var BEGIN_CODE_INJECTION;
     MyMessageMin.instance;
        
       if ( typeof MyMessageMin.instance === 'undefined' ){
-	 MyMessageMin.instance = null;
+    	  MyMessageMin.instance = null;
       }
       
       //private members
@@ -218,10 +218,10 @@ var BEGIN_CODE_INJECTION;
       
 
        /** The wide css element. */
-       var jWideCss = document.createElement('style');
-		  jWideCss.setAttribute('type', 'text/css');
-		  jWideCss.setAttribute('id', 'message-widen-css');
-		  jWideCss.innerHTML = ''+
+       var wideCss = document.createElement('style');
+		  wideCss.setAttribute('type', 'text/css');
+		  wideCss.setAttribute('id', 'message-widen-css');
+		  wideCss.innerHTML = ''+
 		  'div ._2nb {margin-left:-309px; width:100% !important;} \n' + //added 2013-01-11, edited 2013-04-01
 		  'div .-cx-PRIVATE-webMessengerReadView__messagingScroller .uiScrollableAreaBody, \n' + //backwards compatible
 		  'div ._2nc .uiScrollableAreaBody, \n div ._2nc, \n div .uiScrollableAreaBody\n ' + //used
@@ -250,57 +250,56 @@ var BEGIN_CODE_INJECTION;
       
       
       /** Whether or not the side-bar is currently minimized AND the current myButtonClass of class to use. */
-      var jMinimized = 0;
+      var isMinimized = 0;
       
       if (MyMessageMin.instance == null){
-       MyMessageMin.instance = {
-	  
-      
-      /**
-      * Inserts or removes css to widen msgBlock. 
-      * @param {boolean} insert <code>true</code> to insert css, 
-      * <code>false</code> to remove.
-      */
-	insertWideStyle:function(insert)
-	{
-	   if (insert)
-	    {  
-	      document.getElementsByTagName('head')[0].appendChild(jWideCss);    
-	    }
-	    else
-	    {
-		jWideCss.parentNode.removeChild(jWideCss);
-	    }
-	    
-	},	
-	
-      /**
-      * Minimizes the side bar, widens the message and other tidbits
-      * Function meant to be injected into page
-      */
-      jToggleMessageSide:function()
-      {
-	console.log("jToggleMessageSide: " + jMinimized);
-	if (jMinimized)	//minimized?
-	{
-	  jMinimized = 0;	//then unminimize
-	  sidePanelSuper.setAttribute("style", sidePanelStyle)
-	  emotPanelIcon.setAttribute("style", emotPanelStyle);
-	}
-	else 
-	{
-	  jMinimized = 1;
-	  sidePanelSuper.setAttribute("style", sidePanelStyle+ "; display:none;");
-	  emotPanelIcon.setAttribute("style", emotWideStyle);
-	}
-	//two tier is ok, but static variables are unfortunate.
-	var button = document.getElementById(myButtonId);
-	    button.setAttribute('class', myButtonClass[jMinimized]);
-	    button.innerHTML= buttonVal[jMinimized]; 
-	    
-	this.insertWideStyle(jMinimized); 
-      }
-    };
+    	  MyMessageMin.instance = {
+			  
+		      /**
+		      * Inserts or removes css to widen msgBlock. 
+		      * @param {boolean} insert <code>true</code> to insert css, 
+		      * <code>false</code> to remove.
+		      */
+			insertWideStyle:function(insert)
+			{
+			   if (insert)
+			    {  
+			      document.getElementsByTagName('head')[0].appendChild(wideCss);    
+			    }
+			    else
+			    {
+				wideCss.parentNode.removeChild(wideCss);
+			    }
+			    
+			},	
+			
+		      /**
+		      * Minimizes the side bar, widens the message and other tidbits
+		      * Function meant to be injected into page
+		      */
+	      toggleMessageSide:function()
+	      {
+			
+			if (isMinimized)	//minimized?
+			{
+			  isMinimized = 0;	//then unminimize
+			  sidePanelSuper.setAttribute("style", sidePanelStyle)
+			  emotPanelIcon.setAttribute("style", emotPanelStyle);
+			}
+			else 
+			{
+			  isMinimized = 1;
+			  sidePanelSuper.setAttribute("style", sidePanelStyle+ "; display:none;");
+			  emotPanelIcon.setAttribute("style", emotWideStyle);
+			}
+			//two tier is ok, but static variables are unfortunate.
+			var button = document.getElementById(myButtonId);
+			    button.setAttribute('class', myButtonClass[isMinimized]);
+			    button.innerHTML= buttonVal[isMinimized]; 
+			    
+			this.insertWideStyle(isMinimized); 
+		      }
+		    };
   }
     return MyMessageMin.instance;
   }  
