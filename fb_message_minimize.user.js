@@ -43,7 +43,7 @@
  * and allowing the page to excute the scripts.
  * 
  * @this {CodeInjector}
- * @version 0.3.0
+ * @version 0.3.1
  */
  function CodeInjector()
  {
@@ -70,11 +70,12 @@
       * @return {String} The code to be injected.
       */
       trimmer:function(fullScript, start, end)
-      {	start 	= 'var '+start+';';
-	    end	= 'var '+end+';';
-	    var index1 = fullScript.indexOf(start) + start.length;
-	    var index2 = fullScript.indexOf(end);
-	    return fullScript.substring(index1,index2);
+      {	
+    	  start 	= 'var '+start+';';
+    	  end	= 'var '+end+';';
+    	  var index1 = fullScript.indexOf(start) + start.length;
+    	  var index2 = fullScript.indexOf(end);
+    	  return fullScript.substring(index1,index2);
       },
 
       /**
@@ -82,11 +83,16 @@
       * @param {String} inputScript to inject into page code.
       */
       syringe:function(inputScript)
-      {   var script = document.createElement('script');
-	  script.setAttribute("type", "application/javascript"); script.setAttribute("id", codeInjectorId);
-	  var scriptText = document.createTextNode(inputScript);
-	  script.appendChild(scriptText);
-	  document.getElementsByTagName('head')[0].appendChild(script);
+      {  
+          var id = codeInjectorId;
+          for (var i = 0; document.getElementById(id) ; i++) 
+            id = codeInjectorId + "-"  + i; //make the script unique 
+    	  var script = document.createElement('script');
+    	  	script.setAttribute("type", "application/javascript"); 
+    	  	script.setAttribute("id", id);
+    	  var scriptText = document.createTextNode(inputScript);
+    	  script.appendChild(scriptText);
+    	  document.getElementsByTagName('head')[0].appendChild(script);
       },
       
       /**
