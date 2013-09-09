@@ -5,12 +5,12 @@
 // @description    Adds a minimize button to the message page to toggle the "contact" list.
 // @include        http://www.facebook.com/messages/*
 // @include        https://www.facebook.com/messages/*
-// @version        0.1.3
+// @version        0.1.4
 // ==/UserScript==
 
 /**
  * NOTE changes :
- * 2012-10-25 	- Added @changes block
+ * 2012-10-25 	- Added changes block
  * 		- Added/Updated code injector
  * 		- Added the button inserter
  * 2012-10-26	- Fully functional
@@ -19,8 +19,8 @@
  * 		- Patched - Message body broke. Moved the margin back of <div class="_2nb">
  * 2013-04-01	- Patched - Message body broke. The page was restyling causing the ad-bar to creep in from the right.
  * 			set width as !important.
- * 2013-09-07	-Branched to its own file. Added git.
- *  
+ * 2013-09-06	-Branched to its own file. Added git.
+ * 2013-09-09   -Removed injector.
  * 
  * TODO Add cookie to pre-do tasks.
  * 
@@ -37,86 +37,7 @@
  * 
  */
 
-/**
- * Used to inject pieces of userscripts into the page 
- * (to circumvent to greasemonkey's sandbox isolating userscripts from page scripts)
- * and allowing the page to excute the scripts.
- * 
- * @this {CodeInjector}
- * @version 0.3.1
- */
- function CodeInjector()
- {
-   var codeInjectorId = "my-injected-script";
-   return {
-     
-     /**
-      * Returns the passed script as a string.
-      * @param {function} scriptContainer The script container to turn to a string.
-      * @return {String} The function code as a string.
-      */
-     functionToString:function(scriptContainer)
-     {
-	return (new Function(scriptContainer)).toString()
-     },
-     
-      /**
-      * Uses string manipulation on the code for injection into the page. 
-      * NOTE: Must use the format 'var [start];' and 'var [end];' 
-      *   encapsulating the code to be injected.
-      * @param {String} fullScript The fullscript to trime.
-      * @param {String} start The starting tag of injected code.
-      * @param {String} end The end tag of injected code.
-      * @return {String} The code to be injected.
-      */
-      trimmer:function(fullScript, start, end)
-      {	
-    	  start 	= 'var '+start+';';
-    	  end	= 'var '+end+';';
-    	  var index1 = fullScript.indexOf(start) + start.length;
-    	  var index2 = fullScript.indexOf(end);
-    	  return fullScript.substring(index1,index2);
-      },
-
-      /**
-      * Injects code into the page giving it the id: "my-injected-script".
-      * @param {String} inputScript to inject into page code.
-      */
-      syringe:function(inputScript)
-      {  
-          var id = codeInjectorId;
-          for (var i = 0; document.getElementById(id) ; i++) 
-            id = codeInjectorId + "-"  + i; //make the script unique 
-    	  var script = document.createElement('script');
-    	  	script.setAttribute("type", "application/javascript"); 
-    	  	script.setAttribute("id", id);
-    	  var scriptText = document.createTextNode(inputScript);
-    	  script.appendChild(scriptText);
-    	  document.getElementsByTagName('head')[0].appendChild(script);
-      },
-      
-      /**
-      * Parses the scriptContainer, trims it, and injects it into the page.
-      * @param {function} scriptContainer The script container to turn to a string.
-      * @param {String} start The starting tag of injected code.
-      * @param {String} end The end tag of injected code.
-      * @see CodeInjector.functionToString
-      * @see CodeInjector.trimmer
-      * @see CodeInjector.syringe
-      */
-      fullInjection:function(scriptContainer, start, end)
-      {  
-	this.syringe(  this.trimmer( this.functionToString(scriptContainer), start, end ) );
-      }
-   };
-
- }
-
-////////////////////////////////////////////////////////////////////////// 
-///// End of code injector block
-//////////////////////////////////////////////////////////////////////////
-
-
+function foobar(){alert('foobar');}
 ////////////////////////////////////////////////////////////////////////// 
 ///// Fb messaging block start
 //////////////////////////////////////////////////////////////////////////
@@ -160,10 +81,12 @@
     var minButton = document.createElement('div');
 	minButton.setAttribute('id', minButtonId);
 	minButton.setAttribute('class', defClass);
-	minButton.setAttribute('onclick', 'MyMessageMin().toggleMessageSide()');
+	minButton.addEventListener('click', function(){MyMessageMin().toggleMessageSide();}, false); 
 	minButton.innerHTML = minButtonInner;
 	
-       leftPanel.insertBefore( minButton, leftPanel.firstChild);
+		
+	
+    leftPanel.insertBefore( minButton, leftPanel.firstChild);
     
   }
   
@@ -178,7 +101,8 @@
     	      
    var leftPanel = webMessenger.getElementsByTagName('div')[0];
    
-   //document.getElementById('pagelet_web_messenger').getElementsByTagName('div')[0].getElementsByTagName('div')[0].getElementsByTagName('div')[0]
+   //document.getElementById('pagelet_web_messenger').getElementsByTagName('div')[0]
+   //.getElementsByTagName('div')[0].getElementsByTagName('div')[0]
    if (leftPanel)
    {	if (leftPanel = leftPanel.getElementsByTagName('div')[0])
 	{  if (leftPanel.getElementsByTagName('div')[0]) 
@@ -194,14 +118,7 @@
       
   }
  
-/** 
- * Used as a wrapper to contain the script for injection.
- */  
-function scriptContainer()
-{//Beginning of injection
-var BEGIN_CODE_INJECTION;
-
-   
+ 
  /** Singleton module that holds function for the message minimize button. 
   * @this MyMessageMin
   */
@@ -253,7 +170,6 @@ var BEGIN_CODE_INJECTION;
       /** The wide style for the emotions. */
       var emotWideStyle = 'left: 802px;';
         
-      
       
       /** Whether or not the side-bar is currently minimized AND the current myButtonClass of class to use. */
       var isMinimized = 0;
@@ -309,9 +225,7 @@ var BEGIN_CODE_INJECTION;
   }
     return MyMessageMin.instance;
   }  
-  
- var END_CODE_INJECTION;
-}//end of injection 
+ 
 
 } 
 ////////////////////////////////////////////////////////////////////////// 
@@ -320,7 +234,7 @@ var BEGIN_CODE_INJECTION;
 
 	
 var head	= document.getElementsByTagName('head')[0];
-var stylesheetId = 'jason-stylesheet';
+var stylesheetId = 'my-button-stylesheet';
 
 if ( head)
 {
@@ -329,11 +243,7 @@ if ( head)
 		css.setAttribute ('id', stylesheetId);
 		css.innerHTML = buttonStyle;
 		head.appendChild(css);	
-		
-  
-  
-	var codeInjector = CodeInjector();
-	codeInjector.fullInjection(scriptContainer, 'BEGIN_CODE_INJECTION', 'END_CODE_INJECTION');
+	
 
 	waitUntilLoad(insertMinimizeButton, 0);
 }
