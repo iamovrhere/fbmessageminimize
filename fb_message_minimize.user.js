@@ -5,7 +5,7 @@
 // @description    Adds a minimize button to the message page to toggle the "contact" list.
 // @include        http://www.facebook.com/messages/*
 // @include        https://www.facebook.com/messages/*
-// @version        0.1.4
+// @version        0.1.5
 // ==/UserScript==
 
 /**
@@ -19,8 +19,10 @@
  * 		- Patched - Message body broke. Moved the margin back of <div class="_2nb">
  * 2013-04-01	- Patched - Message body broke. The page was restyling causing the ad-bar to creep in from the right.
  * 			set width as !important.
- * 2013-09-06	-Branched to its own file. Added git.
- * 2013-09-09   -Removed injector.
+ * 2013-09-06	- Branched to its own file. Added git.
+ * 2013-09-09   - Removed injector.
+ * 2014-03-13 	- Patched - <div class="_2nb"> float: right;  (was displacerd with the chat-bar open). increased width
+* 		 	
  * 
  * TODO Add cookie to pre-do tasks.
  * 
@@ -145,11 +147,11 @@ function foobar(){alert('foobar');}
 		  wideCss.setAttribute('type', 'text/css');
 		  wideCss.setAttribute('id', 'message-widen-css');
 		  wideCss.innerHTML = ''+
-		  'div ._2nb {margin-left:-309px; width:100% !important;} \n' + //added 2013-01-11, edited 2013-04-01
+		  'div ._2nb { width:100% !important; float: right;} \n' + //added 2013-01-11, edited 2014-03-13
 		  'div .-cx-PRIVATE-webMessengerReadView__messagingScroller .uiScrollableAreaBody, \n' + //backwards compatible
 		  'div ._2nc .uiScrollableAreaBody, \n div ._2nc, \n div .uiScrollableAreaBody\n ' + //used
 		  'div .-cx-PRIVATE-webMessengerReadView__messagingScroller \n' +  //backwards compatible
-		  ' {width: 847px !important;}';
+		  ' {width: 1000px !important;}'; 
        
 	/** The messenger body element. */
         var sidePanelSuper = document.getElementById('pagelet_web_messenger')
