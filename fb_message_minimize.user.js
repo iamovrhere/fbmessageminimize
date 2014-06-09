@@ -5,7 +5,7 @@
 // @description    Adds a minimize button to the message page to toggle the "contact" list.
 // @include        http://www.facebook.com/messages/*
 // @include        https://www.facebook.com/messages/*
-// @version        0.1.5
+// @version        0.2.0
 // ==/UserScript==
 
 /**
@@ -22,7 +22,8 @@
  * 2013-09-06	- Branched to its own file. Added git.
  * 2013-09-09   - Removed injector.
  * 2014-03-13 	- Patched - <div class="_2nb"> float: right;  (was displacerd with the chat-bar open). increased width
-* 		 	
+ * 2014-06-09	- Last change pushed ads underneath body. Now hiding ads in addition to toggle.
+ * 		 	
  * 
  * TODO Add cookie to pre-do tasks.
  * 
@@ -37,9 +38,9 @@
  * 
  * 	class 'wmMasterView' for left side panel
  * 
+ *  	id: 'pagelet_ego_pane' is the ad-panel to right.
  */
 
-function foobar(){alert('foobar');}
 ////////////////////////////////////////////////////////////////////////// 
 ///// Fb messaging block start
 //////////////////////////////////////////////////////////////////////////
@@ -172,8 +173,8 @@ function foobar(){alert('foobar');}
       /** The wide style for the emotions. */
       var emotWideStyle = 'left: 802px;';
         
-      
-      /** Whether or not the side-bar is currently minimized AND the current myButtonClass of class to use. */
+      /** Whether or not the side-bar is currently minimized AND the current myButtonClass of class to use. 
+       Note that the value is used both as a bool and index. */
       var isMinimized = 0;
       
       if (MyMessageMin.instance == null){
@@ -208,13 +209,15 @@ function foobar(){alert('foobar');}
 			{
 			  isMinimized = 0;	//then unminimize
 			  sidePanelSuper.setAttribute("style", sidePanelStyle)
-			  emotPanelIcon.setAttribute("style", emotPanelStyle);
+			  emotPanelIcon.setAttribute("style", emotPanelStyle);	
+			  this.hideAdSidePanel(false);
 			}
 			else 
 			{
 			  isMinimized = 1;
 			  sidePanelSuper.setAttribute("style", sidePanelStyle+ "; display:none;");
 			  emotPanelIcon.setAttribute("style", emotWideStyle);
+			  this.hideAdSidePanel(true);
 			}
 			//two tier is ok, but static variables are unfortunate.
 			var button = document.getElementById(myButtonId);
@@ -222,7 +225,15 @@ function foobar(){alert('foobar');}
 			    button.innerHTML= buttonVal[isMinimized]; 
 			    
 			this.insertWideStyle(isMinimized); 
-		      }
+		},
+		/** Hides the ad side panel based upon the value of hide
+		 * @param {boolean} hide true to hide, false to show. */
+		hideAdSidePanel:function(hide){
+		    var adPanel = document.getElementById('pagelet_ego_pane');
+		    if (adPanel){
+		      adPanel.style.display = hide ? 'none' : ''; 
+		    } 
+		}
 		    };
   }
     return MyMessageMin.instance;
